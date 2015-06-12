@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="canvas" style="border:1px solid #000000"></canvas> 
+
+
+<script>
+//------Vars--------
+
+
+
+//Lemming Vars
+var size = 10;
+var x=size;
+var y=size;
+var gravity = size;
+
+function lemming(x,y, direction){
+   this.x= x;
+   this.y= y;
+   //this.direction = direction;
+
+   this.turnAround = function(){
+      if (this.direction=="LEFT") this.direction = "RIGHT";
+      else this.direction = "LEFT";
+   }
+
+   this.move = function(){
+      if (this.y <= (cheight-size))  this.fall();
+      else if (direction=="LEFT") this.x--;
+      else if (direction=="RIGHT") this.x++;
+      
+      
+   }
+   
+   this.fall = function(){
+      this.y += gravity; 
+   }
+
+   this.draw = function(){
+      drawCircle(this.x,this.y,size);
+   }
+
+   this.update = function(){
+      clear();
+      this.draw();
+   }
+}
+
+
+
+//Canvas Vars
+var cwidth=300;
+var cheight=300;
+var c = document.getElementById("canvas");
+var ctx = c.getContext("2d");
+
+
+// Init 
+canvas.width = cwidth;
+canvas.height = cheight;
+
+
+// --------Functions ----
+function drawCircle(x,y,size){
+   ctx.beginPath();
+   ctx.arc(x,y,size,0,2*Math.PI);
+   ctx.stroke();
+   ctx.fillStyle = "#0000FF";
+   ctx.fill();
+   
+} 
+
+
+
+function clear(){
+   ctx.clearRect(0, 0, cwidth, cheight);
+}
+
+
+// ---------MAIN PROGRAM ---------
+var a = new lemming(x,y,"RIGHT");
+a.draw();
+
+setInterval(function(){
+a.move();
+a.update();
+}, 30);
+</script>
+
+</body>
+</html> 
