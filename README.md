@@ -8,5 +8,5 @@ In Progress...
 Tools
 -----
 
-Notepad - for saving code
-W3Schools - for coding and testing
+- Notepad - for saving code
+- W3Schools TryIt Editor - for coding and testing
