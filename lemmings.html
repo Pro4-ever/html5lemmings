@@ -6,19 +6,32 @@
 
 <script>
 //------Vars--------
-
+//Canvas Vars
+var cwidth=300;
+var cheight=300;
+var c = document.getElementById("canvas");
+var ctx = c.getContext("2d");
 
 
 //Lemming Vars
-var size = 10;
-var x=size;
-var y=size;
+var size = 5;
+var entx=cwidth/2;
+var enty=cheight/2;
 var gravity = size;
 
+
+//Game Vars
+var maxPop = 5; 
+var a = new Array(maxPop);
+var e = new entrance(entx,enty);
+var time = 0;
+
+
+//Objects
 function lemming(x,y, direction){
    this.x= x;
    this.y= y;
-   //this.direction = direction;
+   this.direction = direction;
 
    this.turnAround = function(){
       if (this.direction=="LEFT") this.direction = "RIGHT";
@@ -26,11 +39,20 @@ function lemming(x,y, direction){
    }
 
    this.move = function(){
-      if (this.y <= (cheight-size))  this.fall();
-      else if (direction=="LEFT") this.x--;
-      else if (direction=="RIGHT") this.x++;
-      
-      
+      if (this.y <= (cheight-size*2))  this.fall();
+
+      else {
+      if (this.direction=="LEFT"){
+         this.x--; 
+               }
+      else if (this.direction=="RIGHT"){
+         this.x++;
+
+      }
+      if(this.x >= (cwidth-size) || this.x <= size) this.turnAround();
+
+      }
+
    }
    
    this.fall = function(){
@@ -42,23 +64,28 @@ function lemming(x,y, direction){
    }
 
    this.update = function(){
-      clear();
       this.draw();
    }
 }
 
+// Entrance
+function entrance(x,y){
+   var x = x;
+   var y = y; 
+   var w = size*3;
+   var h = size*3;
 
-
-//Canvas Vars
-var cwidth=300;
-var cheight=300;
-var c = document.getElementById("canvas");
-var ctx = c.getContext("2d");
-
+   this.draw = function(){
+       drawRect(x-w/2,y-h/2,w,h);
+   }
+}
 
 // Init 
-canvas.width = cwidth;
-canvas.height = cheight;
+function init(){
+   canvas.width = cwidth;
+   canvas.height = cheight;
+}
+
 
 
 // --------Functions ----
@@ -72,20 +99,50 @@ function drawCircle(x,y,size){
 } 
 
 
+function drawRect(x,y,width, height){
+    ctx.rect(x,y,width,height);
+    ctx.fillStyle = "#FF0000";
+    ctx.fill();
+    ctx.stroke(); 
+    
+}
+
 
 function clear(){
    ctx.clearRect(0, 0, cwidth, cheight);
 }
 
 
-// ---------MAIN PROGRAM ---------
-var a = new lemming(x,y,"RIGHT");
-a.draw();
+function update(){
+   clear();
 
-setInterval(function(){
-a.move();
-a.update();
-}, 30);
+   e.draw();
+    for (var i = 0; i < a.length; i++)  
+     if (a[i] !=null)a[i].update();
+}
+
+function moveLemmings(){
+    for (var i = 0; i < a.length; i++)  
+       if (a[i] !=null) a[i].move();
+}
+
+function spawnLemmings(){
+    for (var i = 0; i < a.length; i++)  
+       if (time == 100*i) a[i] = new lemming(entx,enty,"RIGHT");
+}
+
+function gameLoop(){   
+   spawnLemmings();
+
+   moveLemmings();
+
+   update();
+   time ++; 
+}
+
+// ---------MAIN PROGRAM ---------
+init();
+setInterval(gameLoop, 30);
 </script>
 
 </body>
