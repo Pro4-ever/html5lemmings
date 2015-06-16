@@ -21,6 +21,7 @@ var maxFallHeight = 4;
 //Game Vars
 var maxPop = 5; 
 var currentPop;
+var graveyardCount=0;
 
 var savedPop = 0;
 var reqSaved = 3;
@@ -34,14 +35,15 @@ var moveTick = size;
 
 var entx=15;
 var enty=15;
-var extx=28;
+var extx=2;
 var exty=27;
 
 var ent = new entrance(entx,enty);
 var ext = new exit(extx,exty);
 // Maps
-var e = "_";
-var w = "x";
+var e = "_"; // empty
+var w = "o"; // obstacle
+var b = "+"; // blocker lemming  
 
 var map = new Array(30);
 
@@ -61,6 +63,7 @@ function lemming(id,mapx,mapy, direction){
    this.falling = false;
    this.fallHeight = this.y;
 
+   this.blocking = false;
 
    this.turnAround = function(){
       if (this.direction=="LEFT") this.direction = "RIGHT";
@@ -70,8 +73,10 @@ function lemming(id,mapx,mapy, direction){
    // Smooth grid based movement (only graphical changes)
    this.move = function(){
       if (!this.falling){
-         if (this.direction=="LEFT") this.x--;
-         else this.x++;
+         if (!this.blocking){
+            if (this.direction=="LEFT") this.x--;
+            else this.x++;
+         }
       }
       else {
          this.y++;
@@ -92,7 +97,8 @@ function lemming(id,mapx,mapy, direction){
       if (this.falling) {
          this.falling= false;
          if(this.mapy-this.fallHeight>maxFallHeight) this.kill();
-      }
+         if (this.blocking)map[this.mapy][this.mapx]=b;
+      }  
    }
 
    this.updateActualCoords = function(){
@@ -104,18 +110,26 @@ function lemming(id,mapx,mapy, direction){
    this.transition = function(){
       if (map[this.mapy+1][this.mapx]==e)  this.fall();
       else {
-      this.stopFall();
-      if (this.direction=="LEFT"){
-         this.mapx--; 
-               }
-      else if (this.direction=="RIGHT"){
-         this.mapx++;
-      }
-      if(this.mapx >= map[0].length-1 || this.mapx <= 1) this.turnAround();
-      if(this.mapx == extx && this.mapy == exty) this.save();
+         this.stopFall();
+         if(!this.blocking){
+            if (this.direction=="LEFT"){
+               this.mapx--; 
+            }
+            else if (this.direction=="RIGHT"){
+               this.mapx++;
+            }
+         }
+         if(this.mapx >= map[0].length-1 || this.mapx <= 1 || (map[this.mapy][this.mapx-1]==b && this.direction=="LEFT") || (map[this.mapy][this.mapx+1]==b && this.direction=="RIGHT")) this.turnAround();
+         if(this.mapx == extx && this.mapy == exty) this.save();
       }
       this.updateActualCoords();
    }
+
+   this.setBlocker = function(){
+      this.blocking=true;
+      if (!this.falling)map[this.mapy][this.mapx]=b;
+   }
+
 
    this.kill = function(){
       killLemming(this.id);
@@ -170,6 +184,7 @@ function exit(mapx,mapy){
 function init(){
    canvas.width = cwidth;
    canvas.height = cheight;
+   canvas.style.backgroundColor="#000000";
    document.body.appendChild(popDisplay); 
    document.body.appendChild(missionDisplay);
    currentPop = 0;
@@ -189,7 +204,7 @@ function loadTestMap(){
     map[24][15]= e;
 
     for (var i=0;i<30;i++) map[28][i]=w;
-    map[28][2]= e;
+    map[28][28]= e;
 
 }
 
@@ -201,9 +216,7 @@ function initMap(){
             map[y][x] = e;
         }
    }
-   loadTestMap();
-
-   
+   loadTestMap();  
 }
 
 // --------Functions ----
@@ -295,6 +308,7 @@ function spawnLemmings(){
 
 function killLemming(id){
     a[id]=null;  
+    graveyardCount++;
 }
 
 function saveLemming(id){
@@ -308,6 +322,7 @@ function gameLoop(){
 
    moveLemmings();
 
+   if (a[0]!=null) if (time>=520) a[0].setBlocker();
    update();
    time ++; 
    
@@ -322,4 +337,3 @@ setInterval(gameLoop, 30);
 
 </body>
 </html> 
-
