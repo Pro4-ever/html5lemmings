@@ -17,6 +17,7 @@ var ctx = c.getContext("2d");
 var size = 5;
 var gravity = size;
 var maxFallHeight = 4;
+var digDuration = 50;
 
 //Game Vars
 var maxPop = 5; 
@@ -63,7 +64,14 @@ function lemming(id,mapx,mapy, direction){
    this.falling = false;
    this.fallHeight = this.y;
 
-   this.blocking = false;
+   this.actionTime=0;
+
+   this.busy = false;    // flag to stop moving around
+   this.blocking = false;  // flag to become a blocker
+   this.digging = false;   // flag to become a digger
+   
+   
+
 
    this.turnAround = function(){
       if (this.direction=="LEFT") this.direction = "RIGHT";
@@ -72,8 +80,8 @@ function lemming(id,mapx,mapy, direction){
 
    // Smooth grid based movement (only graphical changes)
    this.move = function(){
-      if (!this.falling){
-         if (!this.blocking){
+      if (map[this.mapy+1][this.mapx]==w){
+         if (!this.busy){
             if (this.direction=="LEFT") this.x--;
             else this.x++;
          }
@@ -111,7 +119,7 @@ function lemming(id,mapx,mapy, direction){
       if (map[this.mapy+1][this.mapx]==e)  this.fall();
       else {
          this.stopFall();
-         if(!this.blocking){
+         if(!this.busy){
             if (this.direction=="LEFT"){
                this.mapx--; 
             }
@@ -119,17 +127,35 @@ function lemming(id,mapx,mapy, direction){
                this.mapx++;
             }
          }
-         if(this.mapx >= map[0].length-1 || this.mapx <= 1 || (map[this.mapy][this.mapx-1]==b && this.direction=="LEFT") || (map[this.mapy][this.mapx+1]==b && this.direction=="RIGHT")) this.turnAround();
-         if(this.mapx == extx && this.mapy == exty) this.save();
+         if(this.mapx >= map[0].length-1 || this.mapx <= 1 || (map[this.mapy][this.mapx-1]!=e && this.direction=="LEFT") || (map[this.mapy][this.mapx+1]!=e && this.direction=="RIGHT")) this.turnAround();
+         
       }
       this.updateActualCoords();
    }
 
    this.setBlocker = function(){
-      this.blocking=true;
+      this.blocking = true;
+      this.busy = true;
       if (!this.falling)map[this.mapy][this.mapx]=b;
    }
 
+   this.setDigger = function(){
+      this.digging=true;
+      this.busy = true;
+      if (!this.falling) this.actionStartTime=time;
+   }
+
+   this.dig = function(){   
+        if (this.actionTime==digDuration){
+            map[this.mapy+1][this.mapx]=e;
+            this.actionTime=0;
+            if (map[this.mapy+2][this.mapx]==e){
+               this.digging=false;
+               this.busy=false; 
+            }
+        }
+        else this.actionTime++;     
+   }
 
    this.kill = function(){
       killLemming(this.id);
@@ -145,6 +171,10 @@ function lemming(id,mapx,mapy, direction){
 
    this.update = function(){
       this.draw();
+      if (this.digging) this.dig();
+    
+
+      if(this.mapx == extx && this.mapy == exty) this.save();
    }
 }
 
@@ -198,7 +228,9 @@ function init(){
 // for debugging
 function loadTestMap(){
     for (var i=0;i<30;i++) map[20][i]=w;
-    map[20][5] = e;
+    //map[20][5] = e;
+
+    for (var i=0;i<30;i++) map[21][i]=w;
 
     for (var i=0;i<30;i++) map[24][i]=w;
     map[24][15]= e;
@@ -322,7 +354,8 @@ function gameLoop(){
 
    moveLemmings();
 
-   if (a[0]!=null) if (time>=520) a[0].setBlocker();
+   //if (a[0]!=null) if (time==520) a[0].setBlocker();
+   if (a[1]!=null) if (time==300) a[1].setDigger();
    update();
    time ++; 
    
