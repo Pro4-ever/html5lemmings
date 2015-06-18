@@ -1,171 +1,424 @@
 <!DOCTYPE html>
 <html>
-<head>
-
-<link rel="stylesheet" type="text/css" href="tictactoe.css">
+<body>
 
 <script>
+//------Vars--------
+//Canvas Vars
+var c = document.createElement("canvas");
 
-var turnCtr = 0;
-var players = ["X", "O"];
-var empty = "_";
+var cwidth=300;
+var cheight=300;
 
-var board = new Array(3);
-var row = new Array(3);
+//var c = document.getElementById("canvas");
 
-var playing = 0;
+c.width =cwidth;
+c.height=cheight;
+c.style.backgroundColor= "#000000";
 
-function init(){  
-   document.getElementById("play").style.visibility = 'hidden';
+var ctx = c.getContext("2d");
+var selected = 0;
 
-   for (var i = 0 ; i < board.length; i++){
-     board[i]= new Array(3);
-     row[i] = document.createElement("div");
-     row[i].id = "row" + i;
-     document.body.appendChild(row[i]);
+var commandBar = document.createElement("div");
+var digButton = document.createElement("input");
+var blockButton = document.createElement("input");
+
+//Lemming Vars
+var size = 5;
+var gravity = size;
+var maxFallHeight = 4;
+var digDuration = 50;
+
+//Game Vars
+var maxPop = 5; 
+var currentPop;
+var graveyardCount=0;
+
+var savedPop = 0;
+var reqSaved = 3;
+
+var a = new Array(maxPop);
+var spawnRate = 50;
+var time = 0;
+
+var currMoveTick = 0;
+var moveTick = size;
+
+var entx=15;
+var enty=15;
+var extx=2;
+var exty=27;
+
+var ent = new entrance(entx,enty);
+var ext = new exit(extx,exty);
+// Maps
+var e = "_"; // empty
+var w = "o"; // obstacle
+var b = "+"; // blocker lemming  
+
+var map = new Array(30);
+
+
+// GUI
+var popDisplay = document.createElement("P");
+var missionDisplay = document.createElement("P"); 
+
+//Objects
+function lemming(id,mapx,mapy, direction){
+   this.id = id;
+   this.mapx= mapx;
+   this.mapy= mapy;
+   this.x= this.mapx*(size*2) + size;
+   this.y= this.mapy*(size*2) + size;
+   this.direction = direction;
+   this.falling = false;
+   this.fallHeight = this.y;
+
+   this.actionTime=0;
+
+   this.busy = false;    // flag to stop moving around
+   this.blocking = false;  // flag to become a blocker
+   this.digging = false;   // flag to become a digger
+   
+   
+
+
+   this.turnAround = function(){
+      if (this.direction=="LEFT") this.direction = "RIGHT";
+      else this.direction = "LEFT";
+   }
+
+   // Smooth grid based movement (only graphical changes)
+   this.move = function(){
+      if (map[this.mapy+1][this.mapx]==w){
+         if (!this.busy){
+            if (this.direction=="LEFT") this.x--;
+            else this.x++;
+         }
+      }
+      else {
+         this.y++;
+      }
    }
    
-   for (var y=0; y<board.length; y++){
-       for (var x=0; x<board.length; x++){
-          board[y][x] = document.createElement('input');
-          board[y][x].type = 'button';
-          board[y][x].value = empty;
-          board[y][x].id="cell"+x+y; 
-          board[y][x].onmouseup = function(){ 
-              if (this.value==empty && playing){
-                 this.value = players[turnCtr];
-                 checkWin();
-                 passTurn();
-              }
-          
-          };
-          document.getElementById("row"+y).appendChild(board[y][x]);  
-       }    
-   }    
-}
-
-function passTurn(){
-   turnCtr++;
-   if (turnCtr==2) turnCtr = 0;
-}
-
-function clickPlay(){
-   if (playing ==0) {
-     playing = 1;
-     init ();
-     document.getElementById("status").innerHTML = "Now Playing";
-     document.getElementById("status").style.color = "yellow";
-   }
-              
-}
-
-function checkRow(row){
-   var values=new Array(3);
-   for (var i = 0; i<board.length; i++){
-      values[i]= board[row][i].value;
-      if (values[i]==empty) return false;
-   }
-
-   return (values[0]== values[1] && values[1]==values[2]);
-
-}
-
-
-function checkColumn(column){
-   var values=new Array(3);
-   for (var i = 0; i<board.length; i++){
-      values[i]= board[i][column].value;
-      if (values[i]==empty) return false;
-   }
-   return (values[0]== values[1] && values[1]==values[2]);
-}
-
-function checkDescendingDiagonal(){
-   var values = new Array(3);
-   for (var i = 0; i < board.length; i++){
-        values[i]= board[i][i].value;
-        if (values[i]==empty) return false;
-   }
-
-   return (values[0]== values[1] && values[1]==values[2]);
-}
-
-
-function checkAscendingDiagonal(){
-   var values = new Array(3);
-   for (var i = 0; i < board.length; i++){
-        values[i]= board[(board.length-1)-i][i].value;
-        if (values[i]==empty) return false;
-   }
-
-   return (values[0]== values[1] && values[1]==values[2]);
-}
-
-function checkWin(){
-    if (checkDraw()) draw();
-    
-    for (var i =0 ; i < board.length; i++){
-       if (checkRow(i)) win();
-       if (checkColumn(i)) win();    }
-    if (checkDescendingDiagonal()) win();
-    if (checkAscendingDiagonal()) win();
-}
-
-function draw(){
-   document.getElementById("status").innerHTML = "~EPIC DRAW~";
-   document.getElementById("status").color = "red";	
-   endGame();	
-}
-
-
-function win(){
-
-   document.getElementById("status").innerHTML = "Player "+(turnCtr+1)+" wins!";
-   document.getElementById("status").color = "green";
-   endGame();
-}
-
-function checkDraw(){
-    for (var y=0; y< board.length; y++){
-       for (var x = 0; x< board.length; x++){
-          if (board[y][x].value==empty) return false;
-       }
-    }
-    return true;
-}
-
-function endGame(){
-   playing = false;
-   document.getElementById("play").style.visibility = 'visible';
-   document.getElementById("play").value = "Play Again?";
-   document.getElementById("play").onmouseup = function() {
-      reset();
-   };
-}
-
-function reset(){
-   document.getElementById("play").style.visibility = 'hidden';
-   document.getElementById("status").innerHTML = "Now Playing";
-   document.getElementById("status").style.color = "yellow";
-
-   for(var y=0; y<board.length; y++){
-      for (var x=0; x<board.length; x++){
-         board[y][x].value = empty;
+   this.fall = function(){
+      this.mapy ++ ; 
+      if(!this.falling) {
+         this.fallHeight=this.mapy;
+         this.falling = true;
       }
 
+      if (this.mapy==map.length-1) this.kill();
    }
 
-   playing = true;
+   this.stopFall= function(){
+      if (this.falling) {
+         this.falling= false;
+         if(this.mapy-this.fallHeight>maxFallHeight) this.kill();
+         if (this.blocking)map[this.mapy][this.mapx]=b;
+      }  
+   }
+
+   this.updateActualCoords = function(){
+      this.x= this.mapx*(size*2) +size;
+      this.y= this.mapy*(size*2) +size;
+   }
+ 
+   // Actual grid based movement (logical changes)
+   this.transition = function(){
+      if (map[this.mapy+1][this.mapx]==e)  this.fall();
+      else {
+         this.stopFall();
+         if(!this.busy){
+            if (this.direction=="LEFT"){
+               this.mapx--; 
+            }
+            else if (this.direction=="RIGHT"){
+               this.mapx++;
+            }
+         }
+         if(this.mapx >= map[0].length-1 || this.mapx <= 1 || (map[this.mapy][this.mapx-1]!=e && this.direction=="LEFT") || (map[this.mapy][this.mapx+1]!=e && this.direction=="RIGHT")) this.turnAround();
+         
+      }
+      this.updateActualCoords();
+   }
+
+   this.setBlocker = function(){
+      this.blocking = true;
+      this.busy = true;
+      if (!this.falling)map[this.mapy][this.mapx]=b;
+   }
+
+   this.setDigger = function(){
+      this.digging=true;
+      this.busy = true;
+      if (!this.falling) this.actionStartTime=time;
+   }
+
+   this.dig = function(){   
+        if (this.actionTime==digDuration){
+            map[this.mapy+1][this.mapx]=e;
+            this.actionTime=0;
+            if (map[this.mapy+2][this.mapx]==e){
+               this.digging=false;
+               this.busy=false; 
+            }
+        }
+        else this.actionTime++;     
+   }
+
+   this.kill = function(){
+      killLemming(this.id);
+   }
+
+   this.save = function(){
+      ext.lemmingExit(this.id);
+   }
+
+   this.draw = function(){
+      drawCircle(this.x,this.y,size);
+   }
+
+   this.update = function(){
+      this.draw();
+      if (this.digging) this.dig();
+    
+
+      if(this.mapx == extx && this.mapy == exty) this.save();
+   }
 }
+
+// Entrance
+function entrance(mapx,mapy){
+   var mapx=mapx;
+   var mapy=mapy;
+   var x = mapx*(size*2);
+   var y = mapy*(size*2); 
+   var w = size*2;
+   var h = size*2;
+
+   this.draw = function(){
+       drawRect(x,y,w,h, "#FF0000");
+   }
+}
+
+// Exit
+function exit(mapx,mapy){
+   var mapx=mapx;
+   var mapy=mapy;
+   var x = mapx*(size*2);
+   var y = mapy*(size*2); 
+   var w = size*2;
+   var h = size*2;
+
+   this.draw = function(){
+       drawRect(x,y,w,h, "#00FF00");
+   }
+
+   this.lemmingExit = function(lemmingId){
+       saveLemming(lemmingId);
+   }
+}
+
+
+// Init
+function init(){
+   
+   //canvas.width = cwidth;
+   //canvas.height = cheight;
+   //canvas.style.backgroundColor="#000000";
+   document.body.appendChild(popDisplay); 
+   document.body.appendChild(missionDisplay);
+
+   document.body.appendChild(c);
+
+   loadButtons();
+   
+   currentPop = 0;
+   
+   updatePopDisplay();
+   updateMissionDisplay();
+   
+   
+   initMap();
+}
+
+// for debugging
+function loadTestMap(){
+    for (var i=0;i<30;i++) {
+         map[i][0]=w;
+         map[i][map.length-1]=w;
+         map[20][i]=w;
+         map[21][i]=w;
+         map[24][i]=w;
+    }
+    map[24][15]= e;
+
+    for (var i=0;i<30;i++) map[28][i]=w;
+    map[28][28]= e;
+
+}
+
+
+function initMap(){
+   for (var y = 0 ; y < 30; y++){
+        map[y] = new Array(30);
+        for (var x = 0; x < 30; x++){
+            map[y][x] = e;
+        }
+   }
+   loadTestMap();  
+}
+
+function loadButtons(){
+   document.body.appendChild(commandBar);
+
+
+   digButton.type = 'button';
+   blockButton.type = 'button';
+
+
+   digButton.value = "DIG";
+   blockButton.value = "BLOCK";
+
+   digButton.id = 'dig';
+   blockButton.id = 'block';
+
+   digButton.onmouseup = function(){
+      if(a[selected]!=null){
+         a[selected].setDigger();
+         selected++;
+      }
+   }
+
+   blockButton.onmouseup = function(){
+      if(a[selected]!=null)
+         a[selected].setBlocker();
+         selected++;
+   }
+
+   commandBar.appendChild(digButton);
+   commandBar.appendChild(blockButton);
+   
+}
+
+// --------Functions ----
+function drawCircle(x,y,size){
+   ctx.beginPath();
+   ctx.fillStyle = "#0000FF";
+   ctx.arc(x,y,size,0,2*Math.PI);
+   
+   ctx.fill();
+   ctx.stroke();
+   ctx.closePath();
+} 
+
+
+function drawRect(x,y,width, height, color){
+    ctx.fillStyle = color;
+    ctx.fillRect(x,y,width,height);
+    
+    ctx.stroke(); 
+    
+}
+
+
+function clear(){
+   ctx.clearRect(0, 0, cwidth, cheight);
+}
+
+
+function drawMap(){
+   for (var y = 0 ; y < map.length; y++){
+       for (var x = 0 ; x < map.length; x++){
+           if (map[y][x] == w){
+               ctx.fillStyle = "#2B2B2B";
+               ctx.fillRect(x*size*2,y*size*2,size*2,size*2);
+    
+               ctx.stroke();
+           }
+       }
+   }
+}
+
+function updatePopDisplay(){
+   var ctr = 0;
+   for(var i =0; i<a.length; i++)
+      if (a[i]!=null)ctr++;
+   
+   currentPop=ctr;
+   popDisplay.innerHTML = "OUT: "+ currentPop;
+}
+
+function updateMissionDisplay(){
+   missionDisplay.innerHTML = "SAVED: "+ savedPop+" / "+ reqSaved;
+}
+
+function update(){
+   clear();
+   updatePopDisplay();
+   drawMap();
+   
+   ent.draw();
+   ext.draw();
+
+   for (var i = 0; i < a.length; i++)  
+     if (a[i] !=null)a[i].update();
+   
+   
+}
+
+function moveLemmings(){
+    if (currMoveTick<moveTick){
+       for (var i = 0; i <a.length; i++)
+          if (a[i] !=null) a[i].move();
+       
+       currMoveTick++;  
+    }
+    else{
+       for (var i = 0; i < a.length; i++)  
+          if (a[i] !=null) a[i].transition();
+       currMoveTick=0;
+    }
+}
+
+function spawnLemmings(){
+    for (var i = 0; i < a.length; i++)  
+       if (time ==(100 - spawnRate)*i +100)
+           a[i] = new lemming(i,entx,enty,"RIGHT");
+       
+}
+
+function killLemming(id){
+    a[id]=null;  
+    graveyardCount++;
+}
+
+function saveLemming(id){
+    a[id]=null;
+    savedPop++;
+    updateMissionDisplay();
+}
+
+function gameLoop(){     
+   spawnLemmings();
+
+   moveLemmings();
+
+   //if (a[0]!=null) if (time==520) a[0].setBlocker();
+   //if (a[1]!=null) if (time==300) a[1].setDigger();
+   update();
+   time ++; 
+   
+  
+}
+
+
+// ---------MAIN PROGRAM ---------
+
+init();
+setInterval(gameLoop, 30);
 </script>
 
-
-</head>
-<body>
-<h1> Tic Tac Toe </h1>
-<input id="play" class="play" type="button" value="Play" onmouseup="clickPlay()">
-<p class = "text" id ="status">
-</p>
-
 </body>
-</html>
+</html> 
