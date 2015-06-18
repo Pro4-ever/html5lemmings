@@ -22,6 +22,7 @@ var selected = 0;
 var commandBar = document.createElement("div");
 var digButton = document.createElement("input");
 var blockButton = document.createElement("input");
+var parachuteButton = document.createElement("input");
 
 //Lemming Vars
 var size = 5;
@@ -79,7 +80,7 @@ function lemming(id,mapx,mapy, direction){
    this.busy = false;    // flag to stop moving around
    this.blocking = false;  // flag to become a blocker
    this.digging = false;   // flag to become a digger
-   
+   this.parachute = false; // flag to become a para trooper
    
 
 
@@ -114,9 +115,10 @@ function lemming(id,mapx,mapy, direction){
    this.stopFall= function(){
       if (this.falling) {
          this.falling= false;
-         if(this.mapy-this.fallHeight>maxFallHeight) this.kill();
+         if(this.mapy-this.fallHeight>maxFallHeight  && !this.parachute ) this.kill();
          if (this.blocking)map[this.mapy][this.mapx]=b;
       }  
+      if (this.parachute) this.parachute=false;
    }
 
    this.updateActualCoords = function(){
@@ -144,15 +146,23 @@ function lemming(id,mapx,mapy, direction){
    }
 
    this.setBlocker = function(){
-      this.blocking = true;
-      this.busy = true;
-      if (!this.falling)map[this.mapy][this.mapx]=b;
+      if (!this.busy){
+         this.blocking = true;
+         this.busy = true;
+         if (!this.falling)map[this.mapy][this.mapx]=b;
+      }
    }
 
    this.setDigger = function(){
-      this.digging=true;
-      this.busy = true;
-      if (!this.falling) this.actionStartTime=time;
+      if (!this.busy){
+         this.digging=true;
+         this.busy = true;
+         if (!this.falling) this.actionStartTime=time;
+      }
+   }
+
+   this.setParaTrooper = function(){
+      this.parachute = true;
    }
 
    this.dig = function(){   
@@ -176,7 +186,8 @@ function lemming(id,mapx,mapy, direction){
    }
 
    this.draw = function(){
-      drawCircle(this.x,this.y,size);
+      drawCircle(this.x,this.y,size,"#0000FF"); 
+      if(this.falling && this.parachute) drawCircle(this.x, this.y - size, size, "#00FFFF");
    }
 
    this.update = function(){
@@ -223,10 +234,6 @@ function exit(mapx,mapy){
 
 // Init
 function init(){
-   
-   //canvas.width = cwidth;
-   //canvas.height = cheight;
-   //canvas.style.backgroundColor="#000000";
    document.body.appendChild(popDisplay); 
    document.body.appendChild(missionDisplay);
 
@@ -276,13 +283,15 @@ function loadButtons(){
 
    digButton.type = 'button';
    blockButton.type = 'button';
-
+   parachuteButton.type = 'button';
 
    digButton.value = "DIG";
    blockButton.value = "BLOCK";
+   parachuteButton.value = "PARACHUTE";
 
    digButton.id = 'dig';
    blockButton.id = 'block';
+   parachuteButton.id = 'parachute';
 
    digButton.onmouseup = function(){
       if(a[selected]!=null){
@@ -292,20 +301,29 @@ function loadButtons(){
    }
 
    blockButton.onmouseup = function(){
-      if(a[selected]!=null)
+      if(a[selected]!=null) {
          a[selected].setBlocker();
          selected++;
+      }
+   }
+
+   parachuteButton.onmouseup = function(){
+      if(a[selected]!=null){
+         a[selected].setParaTrooper();
+         selected++;
+      }
+         
    }
 
    commandBar.appendChild(digButton);
    commandBar.appendChild(blockButton);
-   
+   commandBar.appendChild(parachuteButton);
 }
 
 // --------Functions ----
-function drawCircle(x,y,size){
+function drawCircle(x,y,size,color){
    ctx.beginPath();
-   ctx.fillStyle = "#0000FF";
+   ctx.fillStyle = color;
    ctx.arc(x,y,size,0,2*Math.PI);
    
    ctx.fill();
