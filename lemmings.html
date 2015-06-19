@@ -10,8 +10,6 @@ var c = document.createElement("canvas");
 var cwidth=300;
 var cheight=300;
 
-//var c = document.getElementById("canvas");
-
 c.width =cwidth;
 c.height=cheight;
 c.style.backgroundColor= "#000000";
@@ -23,16 +21,19 @@ var commandBar = document.createElement("div");
 var digButton = document.createElement("input");
 var blockButton = document.createElement("input");
 var parachuteButton = document.createElement("input");
+var selfDButton = document.createElement("input");
 
 //Lemming Vars
 var size = 5;
 var gravity = size;
 var maxFallHeight = 4;
 var digDuration = 50;
+var selfDDuration = 150;
 
 //Game Vars
+var playing = false;
 var maxPop = 5; 
-var currentPop;
+var currentPop=0;
 var graveyardCount=0;
 
 var savedPop = 0;
@@ -52,13 +53,13 @@ var exty=27;
 
 var ent = new entrance(entx,enty);
 var ext = new exit(extx,exty);
+
 // Maps
 var e = "_"; // empty
 var w = "o"; // obstacle
 var b = "+"; // blocker lemming  
 
 var map = new Array(30);
-
 
 // GUI
 var popDisplay = document.createElement("P");
@@ -76,17 +77,22 @@ function lemming(id,mapx,mapy, direction){
    this.fallHeight = this.y;
 
    this.actionTime=0;
+   this.selfDTime=0;
 
    this.busy = false;    // flag to stop moving around
    this.blocking = false;  // flag to become a blocker
    this.digging = false;   // flag to become a digger
    this.parachute = false; // flag to become a para trooper
-   
+   this.kamekaze = false;  // flag to self destruct
 
 
    this.turnAround = function(){
-      if (this.direction=="LEFT") this.direction = "RIGHT";
-      else this.direction = "LEFT";
+      if (this.direction=="LEFT")
+        this.direction = "RIGHT";
+
+      else 
+        this.direction = "LEFT";
+
    }
 
    // Smooth grid based movement (only graphical changes)
@@ -130,17 +136,17 @@ function lemming(id,mapx,mapy, direction){
    this.transition = function(){
       if (map[this.mapy+1][this.mapx]==e)  this.fall();
       else {
-         this.stopFall();
+         if (this.falling) this.stopFall();
          if(!this.busy){
-            if (this.direction=="LEFT"){
+            if(this.mapx >= map[0].length-1 || this.mapx <= 1 || (map[this.mapy][this.mapx-1]!=e && this.direction=="LEFT") || (map[this.mapy][this.mapx+1]!=e && this.direction=="RIGHT")) this.turnAround();
+            if (this.direction=="LEFT" && map[this.mapy][this.mapx-1]==e)
                this.mapx--; 
-            }
-            else if (this.direction=="RIGHT"){
+               
+            else if (this.direction=="RIGHT" && map[this.mapy][this.mapx+1]==e)
                this.mapx++;
-            }
+               
+            
          }
-         if(this.mapx >= map[0].length-1 || this.mapx <= 1 || (map[this.mapy][this.mapx-1]!=e && this.direction=="LEFT") || (map[this.mapy][this.mapx+1]!=e && this.direction=="RIGHT")) this.turnAround();
-         
       }
       this.updateActualCoords();
    }
@@ -165,6 +171,10 @@ function lemming(id,mapx,mapy, direction){
       this.parachute = true;
    }
 
+   this.setKamekaze = function(){
+      this.kamekaze=true;
+   } 
+
    this.dig = function(){   
         if (this.actionTime==digDuration){
             map[this.mapy+1][this.mapx]=e;
@@ -176,6 +186,18 @@ function lemming(id,mapx,mapy, direction){
         }
         else this.actionTime++;     
    }
+   
+   this.selfDestruct = function(){
+       if (this.selfDTime == selfDDuration) {
+            this.kill();
+            map[this.mapy+1][this.mapx]=e;
+            map[this.mapy-1][this.mapx]=e;
+            map[this.mapy][this.mapx+1]=e;
+            map[this.mapy][this.mapx-1]=e;
+       }
+       else this.selfDTime++;
+   }
+
 
    this.kill = function(){
       killLemming(this.id);
@@ -186,7 +208,8 @@ function lemming(id,mapx,mapy, direction){
    }
 
    this.draw = function(){
-      drawCircle(this.x,this.y,size,"#0000FF"); 
+      if(this.id == selected) drawCircle(this.x,this.y,size,"#FF00FF"); 
+      else drawCircle(this.x,this.y,size,"#0000FF"); 
       if(this.falling && this.parachute) drawCircle(this.x, this.y - size, size, "#00FFFF");
    }
 
@@ -194,7 +217,7 @@ function lemming(id,mapx,mapy, direction){
       this.draw();
       if (this.digging) this.dig();
     
-
+      if(this.kamekaze) this.selfDestruct();
       if(this.mapx == extx && this.mapy == exty) this.save();
    }
 }
@@ -231,12 +254,38 @@ function exit(mapx,mapy){
    }
 }
 
+// Keyboard Control
+window.onkeyup = function (e) {
+    var code = e.keyCode ? e.keyCode : e.which;
+    if (code === 65 || code === 97) { //A key
+        nextSelection();
+    } else if (code === 68 || code === 100) { //D key
+        prevSelection();
+    }
+};
+
+function nextSelection(){ 
+   if (currentPop>0)
+   do{
+     selected++;
+     if (selected == maxPop) selected = 0;
+   }while(a[selected] == null);
+}
+
+function prevSelection(){
+   if (currentPop>0)
+   do{
+     selected--;
+     if (selected == -1) selected = maxPop-1;
+   }while(a[selected] == null);
+   
+}
 
 // Init
 function init(){
    document.body.appendChild(popDisplay); 
    document.body.appendChild(missionDisplay);
-
+   
    document.body.appendChild(c);
 
    loadButtons();
@@ -248,6 +297,7 @@ function init(){
    
    
    initMap();
+   playing = true;
 }
 
 // for debugging
@@ -284,40 +334,46 @@ function loadButtons(){
    digButton.type = 'button';
    blockButton.type = 'button';
    parachuteButton.type = 'button';
+   selfDButton.type = 'button';
 
    digButton.value = "DIG";
    blockButton.value = "BLOCK";
    parachuteButton.value = "PARACHUTE";
+   selfDButton.value = "SELFDESTRUCT";
 
    digButton.id = 'dig';
    blockButton.id = 'block';
    parachuteButton.id = 'parachute';
+   selfDButton.id = 'selfD';
 
    digButton.onmouseup = function(){
-      if(a[selected]!=null){
+      if(a[selected]!=null)
          a[selected].setDigger();
-         selected++;
-      }
+      
    }
 
    blockButton.onmouseup = function(){
-      if(a[selected]!=null) {
+      if(a[selected]!=null) 
          a[selected].setBlocker();
-         selected++;
-      }
+      
    }
 
    parachuteButton.onmouseup = function(){
-      if(a[selected]!=null){
+      if(a[selected]!=null)
          a[selected].setParaTrooper();
-         selected++;
-      }
+      
          
+   }
+
+   selfDButton.onmouseup = function(){
+      if(a[selected]!=null)
+        a[selected].setKamekaze();
    }
 
    commandBar.appendChild(digButton);
    commandBar.appendChild(blockButton);
    commandBar.appendChild(parachuteButton);
+   commandBar.appendChild(selfDButton);
 }
 
 // --------Functions ----
@@ -423,8 +479,6 @@ function gameLoop(){
 
    moveLemmings();
 
-   //if (a[0]!=null) if (time==520) a[0].setBlocker();
-   //if (a[1]!=null) if (time==300) a[1].setDigger();
    update();
    time ++; 
    
