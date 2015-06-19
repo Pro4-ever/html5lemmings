@@ -64,6 +64,7 @@ var map = new Array(30);
 // GUI
 var popDisplay = document.createElement("P");
 var missionDisplay = document.createElement("P"); 
+var controlDisplay = document.createElement("P");
 
 //Objects
 function lemming(id,mapx,mapy, direction){
@@ -99,8 +100,8 @@ function lemming(id,mapx,mapy, direction){
    this.move = function(){
       if (map[this.mapy+1][this.mapx]==w){
          if (!this.busy){
-            if (this.direction=="LEFT") this.x--;
-            else this.x++;
+            if (this.direction=="LEFT" && map[this.mapy][this.mapx-1]==e) this.x--;
+            if (this.direction=="RIGHT" && map[this.mapy][this.mapx+1]==e)this.x++;
          }
       }
       else {
@@ -285,8 +286,10 @@ function prevSelection(){
 function init(){
    document.body.appendChild(popDisplay); 
    document.body.appendChild(missionDisplay);
-   
+   document.body.appendChild(controlDisplay);
    document.body.appendChild(c);
+
+   controlDisplay.innerHTML= "Press A to select next Lemming, D to select previous lemming";
 
    loadButtons();
    
